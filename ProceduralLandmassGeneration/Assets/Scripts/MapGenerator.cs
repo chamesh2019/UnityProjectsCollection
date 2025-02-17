@@ -8,10 +8,16 @@ public class MapGenerator : MonoBehaviour
     public enum DrawMode {NoiseMap, ColorMap, Mesh};
     public DrawMode drawMode;
 
-    public int mapWidth;
-    public int mapHeight;
+    public const int mapChunckSize = 241;
+
+    [Range(0, 6)]
+    public int levelOfDetail = 1;
+
+    //public int mapChunckSize;
+    //public int mapChunckSize;
     public float noiseScale;
     public float heightMultiplier;
+    public AnimationCurve meshHeightCurve;
 
     public bool autoUpdate;
 
@@ -26,18 +32,18 @@ public class MapGenerator : MonoBehaviour
     public TerrainType[] regions;
 
     public void GenerateMap() {
-        float[,] noiseMap = Noise.GenerateNoiseMap(mapWidth, mapHeight, noiseScale, seed, octaves, persistance, lacunarity, offset);
+        float[,] noiseMap = Noise.GenerateNoiseMap(mapChunckSize, mapChunckSize, noiseScale, seed, octaves, persistance, lacunarity, offset);
 
         MapDisplay display = FindFirstObjectByType <MapDisplay>();
 
-        Color[] colorMap = new Color[mapWidth * mapHeight];
+        Color[] colorMap = new Color[mapChunckSize * mapChunckSize];
 
-        for (int y = 0; y < mapHeight; y++) {
-            for (int x = 0; x < mapWidth; x++) {
+        for (int y = 0; y < mapChunckSize; y++) {
+            for (int x = 0; x < mapChunckSize; x++) {
                 float noise = noiseMap[x, y];
                 for (int i = 0; i < regions.Length; i++) {
                     if (noise <= regions[i].height) {
-                        colorMap[y * mapWidth + x] = regions[i].color;
+                        colorMap[y * mapChunckSize + x] = regions[i].color;
                         break;
                     }
                 }
@@ -48,20 +54,14 @@ public class MapGenerator : MonoBehaviour
             Texture2D noiseTexture = TextureGenerator.TextureFromNoiseMap(noiseMap);
             display.DrawTexture(noiseTexture);
         } else if (drawMode == DrawMode.ColorMap) {
-            Texture2D noiseTexture = TextureGenerator.TextureFromColorMap(colorMap, mapWidth, mapHeight);
+            Texture2D noiseTexture = TextureGenerator.TextureFromColorMap(colorMap, mapChunckSize, mapChunckSize);
             display.DrawTexture(noiseTexture);
         } else if (drawMode == DrawMode.Mesh) {
-            display.DrawMesh(MeshGenerator.GenerateMesh(noiseMap, heightMultiplier), TextureGenerator.TextureFromColorMap(colorMap, mapWidth, mapHeight));
+            display.DrawMesh(MeshGenerator.GenerateMesh(noiseMap, heightMultiplier, meshHeightCurve, levelOfDetail), TextureGenerator.TextureFromColorMap(colorMap, mapChunckSize, mapChunckSize));
         }
     }
 
     private void OnValidate() {
-        if (mapWidth < 1) {
-            mapWidth = 1;
-        }
-        if (mapHeight < 1) { 
-            mapHeight = 1; 
-        }
         if (lacunarity < 1) {
             lacunarity = 1;
         }
