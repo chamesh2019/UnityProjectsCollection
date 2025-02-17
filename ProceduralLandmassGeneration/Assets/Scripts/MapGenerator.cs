@@ -5,12 +5,13 @@ using UnityEngine;
 
 public class MapGenerator : MonoBehaviour
 {
-    public enum DrawMode {NoiseMap, ColorMap};
+    public enum DrawMode {NoiseMap, ColorMap, Mesh};
     public DrawMode drawMode;
 
     public int mapWidth;
     public int mapHeight;
     public float noiseScale;
+    public float heightMultiplier;
 
     public bool autoUpdate;
 
@@ -29,26 +30,28 @@ public class MapGenerator : MonoBehaviour
 
         MapDisplay display = FindFirstObjectByType <MapDisplay>();
 
+        Color[] colorMap = new Color[mapWidth * mapHeight];
+
+        for (int y = 0; y < mapHeight; y++) {
+            for (int x = 0; x < mapWidth; x++) {
+                float noise = noiseMap[x, y];
+                for (int i = 0; i < regions.Length; i++) {
+                    if (noise <= regions[i].height) {
+                        colorMap[y * mapWidth + x] = regions[i].color;
+                        break;
+                    }
+                }
+            }
+        }
+
         if (drawMode == DrawMode.NoiseMap) {
             Texture2D noiseTexture = TextureGenerator.TextureFromNoiseMap(noiseMap);
             display.DrawTexture(noiseTexture);
         } else if (drawMode == DrawMode.ColorMap) {
-            Color[] colorMap = new Color[mapWidth * mapHeight];
-
-            for (int y = 0; y < mapHeight; y++) {
-                for (int x = 0; x < mapWidth; x++) {
-                    float noise = noiseMap[x, y];
-                    for (int i = 0; i < regions.Length; i++) {
-                        if (noise <= regions[i].height) {
-                            colorMap[y * mapWidth + x] = regions[i].color;
-                            break;
-                        }
-                    }
-                }
-            }
-
             Texture2D noiseTexture = TextureGenerator.TextureFromColorMap(colorMap, mapWidth, mapHeight);
             display.DrawTexture(noiseTexture);
+        } else if (drawMode == DrawMode.Mesh) {
+            display.DrawMesh(MeshGenerator.GenerateMesh(noiseMap, heightMultiplier), TextureGenerator.TextureFromColorMap(colorMap, mapWidth, mapHeight));
         }
     }
 
